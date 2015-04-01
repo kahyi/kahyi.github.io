@@ -32,6 +32,7 @@
                 while (x >= code.width)
                     x -= code.width;
                 c._lastX = c._x || x;
+                c._lastY = c._y;
                 c._x = x;
             },
             set y(y) {
@@ -40,6 +41,7 @@
                 while (y >= code.height)
                     y -= code.height;
                 c._lastY = c._y || y;
+                c._lastX = c._x;
                 c._y = y;
             },
             set d(d) {
@@ -164,7 +166,10 @@
                     return r;
                 }
             },
-            instances: [],
+            exitCode: undefined,
+            instances: {},
+            lastInstanceId: -1,
+            mainInstanceId: 0,
             labels: [
                 {x: 0, y: 0}, //가
                 undefined, undefined, undefined, //각갂갃
@@ -218,6 +223,18 @@
             ],
             onOutput: [],
             onStep: [],
+            onExit: [function(exitCode) {
+                k.stop();
+            }],
+            run: function() {
+                if (k.instances[k.mainInstanceId].live)
+                    k.instances[k.mainInstanceId].instance.run();
+            },
+            stop: function() {
+                for (var n = 0; n < k.lastInstanceId; n++)
+                    if (k.instances[n].live)
+                        k.instances[n].instance.stop();
+            }
         };
         k.code.map = code;
         Kahyi.newInstance(k, 0);
@@ -225,11 +242,16 @@
     };
     Kahyi.newInstance = function(k, label) {
         var i = {
+            beginTime: undefined,
             cursor: [],
+            fineTime: undefined,
             finished: false,
             handle: undefined,
+            in: [],
+            isRunning: false,
             kahyi: k,
             lastOutput: undefined,
+            phase: 0,
             space: 0, //아
             spaces: [
                 [], //아 (thread private)
@@ -282,22 +304,31 @@
             run: function(wpt) {
                 if (i.handle !== undefined)
                     return;
+                if (i.beginTime === undefined)
+                    i.beginTime = Date.now();
                 if (wpt === undefined)
                     wpt = 1024;
-                var f = false;
                 i.handle = setInterval(function() {
-                    if (f)
+                    if (i.isRunning)
                         return;
-                    f = true;
+                    i.isRunning = true;
                     var r;
                     for (var w = 0; w < wpt; w++) {
                         r = i.step();
                         if (!r)
                             break;
                     }
-                    f = false;
-                    if (!r)
+                    i.phase += w + 1;
+                    i.isRunning = false;
+                    if (!r) {
                         i.stop();
+                        i.fineTime = Date.now();
+                        if (i === k.instances[k.mainInstanceId].instance) {
+                            k.exitCode = i.exitCode;
+                            for (var handle in k.onExit)
+                                k.onExit[handle](k.exitCode);
+                        }
+                    }
                 });
             },
             step: function() {
@@ -384,6 +415,27 @@
                     }
                     return false;
                 }
+                function read() {
+                    var v;
+                    if (i.in === undefined)
+                        return undefined;
+                    if (i.in.length > 0)
+                        v = i.in.shift();
+                    else {
+                        if (!isNode()) {
+                            var t = GLOBAL.prompt();
+                            if (t === null)
+                                t = '';
+                            i.in = i.in.concat(t.split(''));
+                        }
+                        //TODO: node.js?
+                        if (i.in.length > 0)
+                            v = i.in.shift();
+                    }
+                    if (v === undefined)
+                        i.in = undefined;
+                    return v;
+                }
                 function error(canHandle) {
                     if (canHandle === undefined)
                         canHandle = true;
@@ -406,14 +458,19 @@
                             cursor.move(k.code.getChar(cursor.x, cursor.y).medial);
                             break;
                         }
-                        cursor.move(char.medial);
-                        if (char.final !== 21 && char.final !== 27)
-                            k.labels[char.final] = {x: cursor.x, y: cursor.y};
+                        if (char.final !== 21 && char.final !== 27) {
+                            if (k.labels[char.final] !== undefined) {
+                                k.labels[char.final] = {x: cursor.x, y: cursor.y};
+                                cursor.move(char.medial);
+                            }
+                            else
+                                error();
+                        }
                         break;
                     case 1: //ㄲ
                         cursor.move(char.medial);
                         var id = Kahyi.newInstance(k, char.final);
-                        k.instances[id].run();
+                        k.instances[id].instance.run();
                         break;
                     case 2: //ㄴ
                         if (isNullOrUndefined(peek(i.space)) || isNullOrUndefined(peek(i.space, 1))) {
@@ -490,24 +547,22 @@
                     case 7: //ㅂ
                         var a = hangul.strokes[char.final];
                         if (char.final === 21) { //앙
-                            if (!isNode())
-                                a = GLOBAL.prompt();
-                            //TODO: node.js?
-                            if (a.length > 0)
-                                a = Number(a);
+                            a = read();
+                            console.log(a);
+                            if (a === undefined)
+                                a = -1;
                             else
-                                error();
+                                a = Number(a);
                             if (isNaN(a))
-                                a = 0;
+                                a = -1;
                         }
                         else if (char.final === 27) { //앟
-                            if (!isNode())
-                                a = GLOBAL.prompt();
-                            //TODO: node.js?
-                            if (a.length > 0)
+                            a = read();
+                            console.log(a);
+                            if (a !== undefined)
                                 a = a.charCodeAt(0);
                             else
-                                error();
+                                a = -1;
                         }
                         push(i.space, a);
                         cursor.move(char.medial);
@@ -596,8 +651,14 @@
                         }
                         if (char.final !== 21 && char.final !== 27) {
                             var p = k.labels[label];
-                            i.cursor.push(Kahyi.Cursor(k.code, p.x, p.y));
-                            cursor = i.cursor[i.cursor.length - 1];
+                            if (p !== undefined) {
+                                i.cursor.push(Kahyi.Cursor(k.code, p.x, p.y));
+                                cursor = i.cursor[i.cursor.length - 1];
+                            }
+                            else {
+                                error();
+                                break;
+                            }
                         }
                         cursor.move(char.medial);
                         break;
@@ -618,6 +679,9 @@
                         break;
                     case 18: //ㅎ
                         cursor.move(char.medial);
+                        i.exitCode = pop(i.space);
+                        if (isNullOrUndefined(i.exitCode))
+                            i.exitCode = 0;
                         i.finished = true;
                         break;
                     default:
@@ -638,7 +702,12 @@
         };
         var p = k.labels[label];
         i.cursor.push(Kahyi.Cursor(k.code, p.x, p.y));
-        return k.instances.push(i) - 1;
+        k.instances[++k.lastInstanceId] = {
+            id: k.lastInstanceId,
+            instance: i,
+            live: true
+        };
+        return k.lastInstanceId;
     };
     var hangul = {
         base: 0xac00,
