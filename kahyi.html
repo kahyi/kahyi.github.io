@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>자바스크립트로 된 가희 처리기</title>
+        <script type="application/javascript" src="kahyi.js" charset="utf-8"></script>
+        <style type="text/css">
+            textarea {
+                font-family: monospace;
+            }
+        </style>
+    </head>
+    <body>
+        <div>
+            <textarea id="code" rows="24" cols="80"></textarea>
+            <br />
+            <button id="load">Load</button>
+            <button id="run" disabled>Run</button>
+            <button id="step" disabled>Step</button>
+            <button id="stop" disabled>Stop</button>
+            <br />
+            <textarea id="output" rows="24" cols="80" readonly></textarea>
+        </div>
+        <script type="application/javascript">
+            var k;
+            document.getElementById('code').addEventListener('input', function() {
+                document.getElementById('run').setAttribute('disabled');
+                document.getElementById('step').setAttribute('disabled');
+            });
+            document.getElementById('load').addEventListener('click', function() {
+                document.getElementById('output').value = '';
+                k = Kahyi(document.getElementById('code').value);
+                k.onOutput.push(function(output) {
+                    document.getElementById('output').value += output.value;
+                });
+                document.getElementById('run').removeAttribute('disabled');
+                document.getElementById('step').removeAttribute('disabled');
+            });
+            document.getElementById('run').addEventListener('click', function() {
+                document.getElementById('code').setAttribute('readonly');
+                document.getElementById('load').setAttribute('disabled');
+                document.getElementById('run').setAttribute('disabled');
+                document.getElementById('step').setAttribute('disabled');
+                document.getElementById('stop').removeAttribute('disabled');
+                k.instances[0].run();
+            });
+            document.getElementById('step').addEventListener('click', function() {
+                k.instances[0].step();
+            });
+            document.getElementById('stop').addEventListener('click', function() {
+                k.instances[0].stop();
+                document.getElementById('code').removeAttribute('readonly');
+                document.getElementById('load').removeAttribute('disabled');
+                document.getElementById('run').removeAttribute('disabled');
+                document.getElementById('step').removeAttribute('disabled');
+            });
+        </script>
+    </body>
+</html>
