@@ -548,7 +548,6 @@
                         var a = hangul.strokes[char.final];
                         if (char.final === 21) { //앙
                             a = read();
-                            console.log(a);
                             if (a === undefined)
                                 a = -1;
                             else
@@ -558,7 +557,6 @@
                         }
                         else if (char.final === 27) { //앟
                             a = read();
-                            console.log(a);
                             if (a !== undefined)
                                 a = a.charCodeAt(0);
                             else
