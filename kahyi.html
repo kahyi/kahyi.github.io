@@ -25,7 +25,11 @@
                 k.onOutput.push(function(output) {
                     document.getElementById('output').value += output.value;
                 });
-                k.instances[k.mainInstanceId].instance.in = document.getElementById('input').value.split('');
+                if (document.getElementById('input').value.length > 0) {
+                    var t = document.getElementById('input').value.split('');
+                    t.push(undefined);
+                    k.instances[k.mainInstanceId].instance.in = t;
+                }
                 document.getElementById('run').removeAttribute('disabled');
                 document.getElementById('step').removeAttribute('disabled');
             }
@@ -57,11 +61,11 @@
     <body>
         <div>
             <div class="group">
-                <span>Code:</span>
+                <span>Code:</span><br />
                 <textarea id="code" rows="24" cols="80" oninput="codeChanged()"></textarea>
             </div>
             <div class="group">
-                <span>Input:</span>
+                <span>Input:</span><br />
                 <textarea id="input" rows="12" cols="80" oninput="codeChanged()"></textarea>
             </div>
             <button id="load" onclick="load()">Load</button>
@@ -69,7 +73,7 @@
             <button id="step" onclick="step()" disabled="disabled">Step</button>
             <button id="stop" onclick="stop()" disabled="disabled">Stop</button>
             <div class="group">
-                <span>Output:</span>
+                <span>Output:</span><br />
                 <textarea id="output" rows="12" cols="80" readonly="readonly"></textarea>
             </div>
         </div>
