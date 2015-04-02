@@ -85,6 +85,12 @@
                         if (r === -1)
                             d = 13;
                         break;
+                    case 9: //와
+                        c.x += 1 * r;
+                        c.y -= 1 * r;
+                        if (r === -1)
+                            d = 14;
+                        break;
                     case 12: //요
                         c.y -= 2 * r;
                         if (r === -1)
@@ -95,15 +101,37 @@
                         if (r === -1)
                             d = 8;
                         break;
+                    case 14: //워
+                        c.x -= 1 * r;
+                        c.y += 1 * r;
+                        if (r === -1)
+                            d = 9;
+                        break;
                     case 17: //유
                         c.y += 2 * r;
                         if (r === -1)
                             d = 12;
                         break;
                     case 18: //으
-                        if (c._d === 0 || c._d === 2 || c._d === 4 || c._d === 6) {
-                            c.move(c._d, r);
-                            return;
+                        switch (c._d) {
+                            case 0:
+                            case 2:
+                            case 4:
+                            case 6:
+                                c.move(c._d, r);
+                                return;
+                            case 9:
+                                c.move(22);
+                                return;
+                            case 14:
+                                c.move(21);
+                                return;
+                            case 21:
+                                c.move(14);
+                                return;
+                            case 22:
+                                c.move(9);
+                                return;
                         }
                         c.move(c._d, -r);
                         return;
@@ -111,12 +139,44 @@
                         c.move(c._d, -r);
                         return;
                     case 20: //이
+                        switch (c._d) {
+                            case 8:
+                            case 12:
+                            case 13:
+                            case 17:
+                                c.move(c._d, r);
+                                return;
+                            case 9:
+                                c.move(21);
+                                return;
+                            case 14:
+                                c.move(22);
+                                return;
+                            case 21:
+                                c.move(9);
+                                return;
+                            case 22:
+                                c.move(14);
+                                return;
+                        }
                         if (c._d === 8 || c._d === 12 || c._d === 13 || c._d === 17) {
                             c.move(c._d, r);
                             return;
                         }
                         c.move(c._d, -r);
                         return;
+                    case 21: //오+어
+                        c.x -= 1 * r;
+                        c.y -= 1 * r;
+                        if (r === -1)
+                            d = 22;
+                        break;
+                    case 22: //우+아
+                        c.x += 1 * r;
+                        c.y += 1 * r;
+                        if (r === -1)
+                            d = 21;
+                        break;
                     default:
                         c.move(c._d, r);
                         return;
@@ -287,6 +347,7 @@
                 undefined, //앞
                 undefined, //앟
             ],
+            wpt: 1024,
             getSpace: function(space) {
                 if (space === undefined)
                     space = i.space;
@@ -301,19 +362,17 @@
                     return k.spaceTypes[space];
                 return i.spaceTypes[space];
             },
-            run: function(wpt) {
+            run: function() {
                 if (i.handle !== undefined)
                     return;
                 if (i.beginTime === undefined)
                     i.beginTime = Date.now();
-                if (wpt === undefined)
-                    wpt = 1024;
                 i.handle = setInterval(function() {
                     if (i.isRunning)
                         return;
                     i.isRunning = true;
                     var r;
-                    for (var w = 0; w < wpt; w++) {
+                    for (var w = 0; w < i.wpt; w++) {
                         r = i.step();
                         if (!r)
                             break;
