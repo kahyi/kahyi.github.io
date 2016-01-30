@@ -1,0 +1,31 @@
+<h1>가희</h1>
+{% assign is_revision = false %}
+<ul>
+{% for post in site.posts reversed %}
+    {% assign is_spec = false %}
+    {% for category in post.categories %}
+        {% if category == "spec" %}
+            {% assign is_spec = true %}
+        {% endif %}
+    {% endfor %}
+    {% if is_spec %}
+        {% if post.revision > 0 %}
+            {% unless is_revision %}
+                {% assign is_revision = true %}
+                <ul>
+            {% endunless %}
+        {% elsif is_revision %}
+            {% assign is_revision = false %}
+            </ul></li>
+        {% endif %}
+        <li>{% if post.url == page.url %}<strong>{% else %}<a href="{{post.url}}">{% endif %}{% if is_revision %}{{post.revision}}개{% else %}{{post.version}}판{% endif %}: {{ post.date | date: "%Y. %-m. %-d." }} ({% case post.condition %}{% when "lastest" %}최신{% when "deprecated" %}폐지{% when "invalid" %}무효{% when "deleted" %}삭제{% endcase %}){% if post.url == page.url %}</strong>{% else %}</a>{% endif %}
+        {% unless is_revision %}
+            </li>
+        {% endunless %}
+    {% endif %}
+{% endfor %}
+{% if is_revision %}
+    </li></ul>
+{% endif %}
+</ul>
+—Mayu Laierlence
