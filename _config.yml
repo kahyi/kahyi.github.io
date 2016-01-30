@@ -1,4 +1,4 @@
-permalink: /:categories/:slug/
+permalink: /:categories/:title/
 markdown: redcarpet
 redcarpet:
   extensions:
